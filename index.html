@@ -1,160 +1,511 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Whitelist Manager</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guard Plugin Manager</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #2C2F38;
-      color: #FFFFFF;
-      margin: 0;
-      padding: 0;
-    }
-
-    h1 {
-      color: #1ABC9C;
-      text-align: center;
-      margin-top: 20px;
-    }
-
-    #entries {
-      margin: 30px auto;
-      max-width: 800px;
-    }
-
-    .entry {
-      background-color: #34495E;
-      border-radius: 5px;
-      padding: 15px;
-      margin-bottom: 10px;
+      background: #181A21;
+      color: #eee;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 0;
+      min-height: 100vh;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
     }
-
-    .entry span {
-      font-size: 16px;
-    }
-
-    button {
-      background-color: #E74C3C;
-      color: white;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    input, button {
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      margin: 5px;
-    }
-
-    input {
-      width: 200px;
-    }
-
-    button:hover {
-      background-color: #C0392B;
-    }
-
-    .add-container {
+    header {
+      background: #1abc9c;
+      width: 100%;
+      padding: 1rem;
+      font-weight: bold;
+      font-size: 1.5rem;
       text-align: center;
+      box-shadow: 0 0 10px #16a085;
+    }
+    main {
+      width: 95%;
+      max-width: 900px;
       margin-top: 20px;
+      flex-grow: 1;
     }
-
-    .add-container input {
-      width: 150px;
+    section {
+      display: none;
     }
-
-    .error {
-      color: #E74C3C;
-      margin-top: 10px;
+    section.active {
+      display: block;
+    }
+    input, select {
+      background: #2c2f38;
+      border: none;
+      border-radius: 5px;
+      padding: 10px;
+      color: #eee;
+      margin: 6px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background: #1abc9c;
+      border: none;
+      padding: 10px 20px;
+      color: #181a21;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px 0;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background: #16a085;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    th {
+      background: #1abc9c;
+      color: #181a21;
+    }
+    .actions button {
+      margin: 0 3px;
+      padding: 5px 10px;
+      font-size: 0.8rem;
+    }
+    #status {
+      margin: 10px 0;
+      font-weight: bold;
+      min-height: 1.5em;
+      color: #e74c3c;
+    }
+    .hide-password {
+      cursor: pointer;
+      user-select: none;
+      color: #16a085;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
+  <header>Guard Plugin Manager</header>
+  <main>
+    <!-- LOGIN -->
+    <section id="loginPage" class="active">
+      <h2>Login</h2>
+      <input type="text" id="loginEmail" placeholder="Email" autocomplete="off" />
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="off" />
+      <button id="loginBtn">Login</button>
+      <p id="loginStatus"></p>
+    </section>
 
-  <h1>Whitelist Manager</h1>
+    <!-- OWNER PAGE -->
+    <section id="ownerPage">
+      <h2>Owner Dashboard</h2>
+      <nav>
+        <button onclick="showOwnerPanel('team')">Team Manager</button>
+        <button onclick="showOwnerPanel('whitelist')">Whitelist Manager</button>
+        <button onclick="logout()">Logout</button>
+      </nav>
+      <div id="ownerPanels">
+        <!-- Team Manager -->
+        <div id="teamManager" class="ownerPanel" style="margin-top:15px;">
+          <h3>Team Manager</h3>
+          <button onclick="addTeamMember()">+ Add Team Member</button>
+          <table id="teamTable">
+            <thead><tr>
+              <th>Email</th><th>Password <span class="hide-password" onclick="togglePasswords()">[Show/Hide]</span></th><th>Role</th><th>Remove</th><th>Change Role</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
 
-  <div id="entries"></div>
+        <!-- Whitelist Manager -->
+        <div id="whitelistManager" class="ownerPanel" style="display:none; margin-top:15px;">
+          <h3>Whitelist Manager</h3>
+          <button onclick="addWhitelistEntry()">+ Add Whitelist Entry</button>
+          <table id="whitelistTable">
+            <thead><tr>
+              <th>Roblox PFP</th><th>Discord User</th><th>Roblox Display Name</th><th>Roblox User</th><th>UserId</th><th>Change</th><th>Remove</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <p id="ownerStatus"></p>
+    </section>
 
-  <div class="add-container">
-    <input type="text" id="robloxUsername" placeholder="Roblox Username" />
-    <input type="text" id="displayName" placeholder="Display Name" />
-    <input type="text" id="userid" placeholder="UserId" />
-    <button onclick="addEntry()">+ Add User</button>
-  </div>
+    <!-- STAFF PAGE -->
+    <section id="staffPage">
+      <h2>Staff Dashboard</h2>
+      <nav>
+        <button onclick="showStaffPanel()">Whitelist Manager</button>
+        <button onclick="logout()">Logout</button>
+      </nav>
+      <div id="staffPanels" style="margin-top:15px;">
+        <h3>Whitelist Manager</h3>
+        <button onclick="addWhitelistEntry()">+ Add Whitelist Entry</button>
+        <table id="whitelistTableStaff">
+          <thead><tr>
+            <th>Roblox PFP</th><th>Discord User</th><th>Roblox Display Name</th><th>Roblox User</th><th>UserId</th><th>Change</th><th>Remove</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="staffStatus"></p>
+    </section>
+  </main>
 
-  <p id="status" class="error"></p>
+<script>
+  // CONFIG
+  const API_URL = "https://script.google.com/macros/s/AKfycbzJqYCM0ntwdxKdUN-RWxy8nA4ThfgqpQCaqvnVHieNxspYpy42aX_cDAI9FYWZ-A54/exec";
 
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzJqYCM0ntwdxKdUN-RWxy8nA4ThfgqpQCaqvnVHieNxspYpy42aX_cDAI9FYWZ-A54/exec';
-    let whitelist = [];
+  // State
+  let currentUser = null;
+  let teamData = [];
+  let whitelistData = [];
+  let passwordsVisible = false;
 
-    async function load() {
-      const res = await fetch(`${API_URL}?file=data/whitelist.json`);
-      whitelist = await res.json();
-      render();
-    }
+  // DOM refs
+  const loginPage = document.getElementById("loginPage");
+  const ownerPage = document.getElementById("ownerPage");
+  const staffPage = document.getElementById("staffPage");
+  const loginStatus = document.getElementById("loginStatus");
+  const ownerStatus = document.getElementById("ownerStatus");
+  const staffStatus = document.getElementById("staffStatus");
 
-    function render() {
-      const div = document.getElementById('entries');
-      div.innerHTML = '';
-      whitelist.forEach((e, i) => {
-        div.innerHTML += `
-          <div class="entry">
-            <span><b>${e.displayName}</b> (${e.robloxUsername}) – ${e.userid}</span>
-            <button onclick="remove(${i})">Remove</button>
-          </div>
-        `;
+  // Login Button
+  document.getElementById("loginBtn").onclick = login;
+
+  function showStatus(element, msg, isError=true) {
+    element.style.color = isError ? "#e74c3c" : "#2ecc71";
+    element.textContent = msg;
+    if(msg) setTimeout(() => { element.textContent = ""; }, 4000);
+  }
+
+  function showSection(section) {
+    [loginPage, ownerPage, staffPage].forEach(s => s.classList.remove("active"));
+    section.classList.add("active");
+  }
+
+  function fetchData() {
+    return fetch(API_URL)
+      .then(r => r.json())
+      .then(data => {
+        teamData = data.team || [];
+        whitelistData = data.whitelist || [];
       });
-    }
+  }
 
-    async function addEntry() {
-      const robloxUsername = document.getElementById('robloxUsername').value.trim();
-      const displayName = document.getElementById('displayName').value.trim();
-      const userid = document.getElementById('userid').value.trim();
+  function login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    if(!email) return showStatus(loginStatus, "Email required!");
+    if(!password) return showStatus(loginStatus, "Password required!");
 
-      if (!robloxUsername || !displayName || !userid) {
-        document.getElementById('status').innerText = 'All fields are required!';
-        return;
+    fetchData().then(() => {
+      const user = teamData.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if(!user) return showStatus(loginStatus, "User not found.");
+      if(user.password !== password) return showStatus(loginStatus, "Wrong password.");
+      currentUser = user;
+
+      if(user.role.toLowerCase() === "owner") {
+        showSection(ownerPage);
+        loadOwnerTables();
+        showOwnerPanel("team");
+      } else {
+        showSection(staffPage);
+        loadWhitelistTable("staff");
       }
+      showStatus(loginStatus, "Login successful!", false);
+    }).catch(() => {
+      showStatus(loginStatus, "Failed to fetch data from server.");
+    });
+  }
 
-      const newUser = { robloxUsername, displayName, userid };
-      whitelist.push(newUser);
-      await save();
+  function logout() {
+    currentUser = null;
+    teamData = [];
+    whitelistData = [];
+    passwordsVisible = false;
+    clearTables();
+    showSection(loginPage);
+  }
+
+  // OWNER PANEL HANDLING
+
+  function showOwnerPanel(panel) {
+    document.querySelectorAll(".ownerPanel").forEach(p => p.style.display = "none");
+    if(panel === "team") {
+      document.getElementById("teamManager").style.display = "block";
+    } else if(panel === "whitelist") {
+      document.getElementById("whitelistManager").style.display = "block";
+      loadWhitelistTable("owner");
     }
+    ownerStatus.textContent = "";
+  }
 
-    function remove(index) {
-      whitelist.splice(index, 1);
-      save();
+  // TEAM MANAGER
+
+  function loadOwnerTables() {
+    loadTeamTable();
+    loadWhitelistTable("owner");
+  }
+
+  function loadTeamTable() {
+    const tbody = document.querySelector("#teamTable tbody");
+    tbody.innerHTML = "";
+    teamData.forEach((user, i) => {
+      const tr = document.createElement("tr");
+
+      // Email (readonly)
+      let tdEmail = document.createElement("td");
+      tdEmail.textContent = user.email;
+      tr.appendChild(tdEmail);
+
+      // Password (toggle hide/show)
+      let tdPass = document.createElement("td");
+      let inputPass = document.createElement("input");
+      inputPass.type = passwordsVisible ? "text" : "password";
+      inputPass.value = user.password;
+      inputPass.style.width = "90%";
+      inputPass.onchange = e => {
+        teamData[i].password = e.target.value;
+      };
+      tdPass.appendChild(inputPass);
+      tr.appendChild(tdPass);
+
+      // Role dropdown
+      let tdRole = document.createElement("td");
+      let selectRole = document.createElement("select");
+      ["owner","staff"].forEach(r => {
+        let opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r.charAt(0).toUpperCase() + r.slice(1);
+        if(user.role.toLowerCase() === r) opt.selected = true;
+        selectRole.appendChild(opt);
+      });
+      selectRole.onchange = e => {
+        teamData[i].role = e.target.value;
+      };
+      tdRole.appendChild(selectRole);
+      tr.appendChild(tdRole);
+
+      // Remove button
+      let tdRemove = document.createElement("td");
+      let btnRemove = document.createElement("button");
+      btnRemove.textContent = "Remove";
+      btnRemove.onclick = () => {
+        if(confirm(`Remove user ${user.email}?`)) {
+          teamData.splice(i, 1);
+          loadTeamTable();
+        }
+      };
+      tdRemove.appendChild(btnRemove);
+      tr.appendChild(tdRemove);
+
+      // Change Role button (force save)
+      let tdChange = document.createElement("td");
+      let btnSave = document.createElement("button");
+      btnSave.textContent = "Save";
+      btnSave.onclick = () => {
+        saveData();
+      };
+      tdChange.appendChild(btnSave);
+      tr.appendChild(tdChange);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function addTeamMember() {
+    const email = prompt("Enter new member email:");
+    if(!email) return;
+    if(teamData.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+      alert("User already exists!");
+      return;
     }
+    const pass = prompt("Enter password for new member:");
+    if(!pass) return;
+    teamData.push({email, password: pass, role: "staff"});
+    loadTeamTable();
+    saveData();
+  }
 
-    async function save() {
-      const status = document.getElementById('status');
-      try {
-        await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            path: "data/whitelist.json",
-            message: "Whitelist updated",
-            content: whitelist
-          })
+  // WHITELIST MANAGER
+
+  function loadWhitelistTable(mode) {
+    // mode = "owner" or "staff"
+    let tbody;
+    if(mode === "owner") {
+      tbody = document.querySelector("#whitelistTable tbody");
+    } else {
+      tbody = document.querySelector("#whitelistTableStaff tbody");
+    }
+    tbody.innerHTML = "";
+    whitelistData.forEach((entry, i) => {
+      const tr = document.createElement("tr");
+
+      // Roblox PFP
+      const tdPfp = document.createElement("td");
+      const img = document.createElement("img");
+      img.src = `https://www.roblox.com/headshot-thumbnail/image?userId=${entry.userid}&width=48&height=48&format=png`;
+      img.alt = "Roblox PFP";
+      img.width = 48;
+      img.height = 48;
+      tdPfp.appendChild(img);
+      tr.appendChild(tdPfp);
+
+      // Discord User
+      const tdDiscord = document.createElement("td");
+      let inputDiscord = document.createElement("input");
+      inputDiscord.value = entry.discordUser || "";
+      inputDiscord.onchange = e => {
+        whitelistData[i].discordUser = e.target.value;
+      };
+      tdDiscord.appendChild(inputDiscord);
+      tr.appendChild(tdDiscord);
+
+      // Roblox Display Name
+      const tdDisplay = document.createElement("td");
+      tdDisplay.textContent = entry.displayName || "";
+      tr.appendChild(tdDisplay);
+
+      // Roblox User (username)
+      const tdUser = document.createElement("td");
+      let inputUser = document.createElement("input");
+      inputUser.value = entry.robloxUser || "";
+      inputUser.onchange = e => {
+        whitelistData[i].robloxUser = e.target.value;
+      };
+      tdUser.appendChild(inputUser);
+      tr.appendChild(tdUser);
+
+      // UserId
+      const tdUserId = document.createElement("td");
+      tdUserId.textContent = entry.userid || "";
+      tr.appendChild(tdUserId);
+
+      // Change button (save)
+      const tdChange = document.createElement("td");
+      const btnSave = document.createElement("button");
+      btnSave.textContent = "Save";
+      btnSave.onclick = () => {
+        // We must check if robloxUser changed and fetch new data
+        fetchRobloxUserData(i).then(() => {
+          saveData();
         });
-        load();
-        status.innerText = '';
-      } catch (error) {
-        status.innerText = 'Failed to save the whitelist. Please try again later.';
+      };
+      tdChange.appendChild(btnSave);
+      tr.appendChild(tdChange);
+
+      // Remove button
+      const tdRemove = document.createElement("td");
+      const btnRemove = document.createElement("button");
+      btnRemove.textContent = "Remove";
+      btnRemove.onclick = () => {
+        if(confirm("Remove this whitelist entry?")) {
+          whitelistData.splice(i, 1);
+          loadWhitelistTable(mode);
+          saveData();
+        }
+      };
+      tdRemove.appendChild(btnRemove);
+      tr.appendChild(tdRemove);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function addWhitelistEntry() {
+    const robloxUser = prompt("Enter Roblox username to whitelist:");
+    if(!robloxUser) return;
+    const discordUser = prompt("Enter Discord username (optional):") || "";
+    const entry = {robloxUser, discordUser, userid: "", displayName: ""};
+    whitelistData.push(entry);
+    const index = whitelistData.length -1;
+    fetchRobloxUserData(index).then(() => {
+      loadWhitelistTable(currentUser.role.toLowerCase() === "owner" ? "owner" : "staff");
+      saveData();
+    });
+  }
+
+  async function fetchRobloxUserData(index) {
+    const user = whitelistData[index];
+    if(!user.robloxUser) return;
+    try {
+      // Roblox API for username to id + display name
+      const resp = await fetch(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(user.robloxUser)}`);
+      const data = await resp.json();
+      if(data && data.data && data.data.length > 0) {
+        const found = data.data[0];
+        whitelistData[index].userid = found.id;
+        whitelistData[index].displayName = found.displayName;
+        whitelistData[index].robloxUser = found.name;
+      } else {
+        alert(`Roblox user "${user.robloxUser}" not found.`);
       }
+    } catch(e) {
+      alert("Failed to fetch Roblox user data.");
     }
+  }
 
-    load();
-  </script>
+  // Toggle password fields show/hide
+  function togglePasswords() {
+    passwordsVisible = !passwordsVisible;
+    loadTeamTable();
+  }
 
+  // Save data to backend
+  function saveData() {
+    if(!currentUser) return;
+    ownerStatus.textContent = "Saving...";
+    staffStatus.textContent = "Saving...";
+
+    const payload = {
+      team: teamData,
+      whitelist: whitelistData
+    };
+
+    fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if(resp.success) {
+        showStatus(ownerStatus, "Data saved successfully!", false);
+        showStatus(staffStatus, "Data saved successfully!", false);
+      } else {
+        showStatus(ownerStatus, "Failed to save data.");
+        showStatus(staffStatus, "Failed to save data.");
+      }
+    })
+    .catch(() => {
+      showStatus(ownerStatus, "Failed to save data.");
+      showStatus(staffStatus, "Failed to save data.");
+    });
+  }
+
+  // Staff whitelist load
+  function loadWhitelistTableStaff() {
+    loadWhitelistTable("staff");
+  }
+
+  // Show staff whitelist panel (just loads table)
+  function showStaffPanel() {
+    loadWhitelistTable("staff");
+    staffStatus.textContent = "";
+  }
+
+</script>
 </body>
 </html>
