@@ -1,156 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Team & Whitelist Manager</title>
-<style>
-  body { background:#121212; color:#eee; font-family: Arial, sans-serif; margin: 20px; }
-  h1 { text-align: center; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  th, td { border: 1px solid #444; padding: 8px; }
-  th { background: #222; }
-  input, button { background:#222; border:none; color:#eee; padding:5px; }
-  button { cursor: pointer; }
-  button.remove { background: #c33; }
-  button.save { background: #2a2; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whitelist Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2C2F38;
+      color: #FFFFFF;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      color: #1ABC9C;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    #entries {
+      margin: 30px auto;
+      max-width: 800px;
+    }
+
+    .entry {
+      background-color: #34495E;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .entry span {
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #E74C3C;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    input, button {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin: 5px;
+    }
+
+    input {
+      width: 200px;
+    }
+
+    button:hover {
+      background-color: #C0392B;
+    }
+
+    .add-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .add-container input {
+      width: 150px;
+    }
+
+    .error {
+      color: #E74C3C;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Team Manager</h1>
-  <table id="teamTable">
-    <thead><tr><th>Email</th><th>Password</th><th>Role</th><th>Actions</th></tr></thead>
-    <tbody></tbody>
-  </table>
-  <button id="addTeam">+ Add Team Member</button>
 
   <h1>Whitelist Manager</h1>
-  <table id="whitelistTable">
-    <thead><tr><th>Discord User</th><th>Display Name</th><th>Roblox User</th><th>UserId</th><th>Actions</th></tr></thead>
-    <tbody></tbody>
-  </table>
-  <button id="addWhitelist">+ Add Whitelist Entry</button>
 
-  <br/><br/>
-  <button id="saveBtn" class="save">Save All Changes</button>
-  <p id="status"></p>
+  <div id="entries"></div>
 
-<script>
-const USERNAME = "GITHUB_USERNAME";
-const REPO = "GITHUB_REPO";
-const BRANCH = "GITHUB_BRANCH"; // usually "main"
-const TOKEN = "GITHUB_TOKEN";
+  <div class="add-container">
+    <input type="text" id="robloxUsername" placeholder="Roblox Username" />
+    <input type="text" id="displayName" placeholder="Display Name" />
+    <input type="text" id="userid" placeholder="UserId" />
+    <button onclick="addEntry()">+ Add User</button>
+  </div>
 
-const TEAM_FILE = "team.json";
-const WHITELIST_FILE = "whitelist.json";
+  <p id="status" class="error"></p>
 
-let teamData = [];
-let whitelistData = [];
-let teamSha = null;
-let whitelistSha = null;
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzJqYCM0ntwdxKdUN-RWxy8nA4ThfgqpQCaqvnVHieNxspYpy42aX_cDAI9FYWZ-A54/exec';
+    let whitelist = [];
 
-const headers = {
-  "Authorization": "token " + TOKEN,
-  "Accept": "application/vnd.github.v3+json",
-  "Content-Type": "application/json"
-};
+    async function load() {
+      const res = await fetch(`${API_URL}?file=data/whitelist.json`);
+      whitelist = await res.json();
+      render();
+    }
 
-function apiGetFile(path) {
-  return fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${path}?ref=${BRANCH}`, {
-    headers
-  }).then(r => {
-    if (!r.ok) throw new Error("Failed to fetch " + path);
-    return r.json();
-  });
-}
+    function render() {
+      const div = document.getElementById('entries');
+      div.innerHTML = '';
+      whitelist.forEach((e, i) => {
+        div.innerHTML += `
+          <div class="entry">
+            <span><b>${e.displayName}</b> (${e.robloxUsername}) – ${e.userid}</span>
+            <button onclick="remove(${i})">Remove</button>
+          </div>
+        `;
+      });
+    }
 
-function apiPutFile(path, content, sha) {
-  return fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${path}`, {
-    method: "PUT",
-    headers,
-    body: JSON.stringify({
-      message: `Update ${path}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-      branch: BRANCH,
-      sha
-    })
-  }).then(r => {
-    if (!r.ok) throw new Error("Failed to save " + path);
-    return r.json();
-  });
-}
+    async function addEntry() {
+      const robloxUsername = document.getElementById('robloxUsername').value.trim();
+      const displayName = document.getElementById('displayName').value.trim();
+      const userid = document.getElementById('userid').value.trim();
 
-function renderTable(tableId, data, columns, onRemove) {
-  const tbody = document.querySelector(`#${tableId} tbody`);
-  tbody.innerHTML = "";
-  data.forEach((item, i) => {
-    const tr = document.createElement("tr");
-    columns.forEach(col => {
-      const td = document.createElement("td");
-      if(col === "actions") {
-        const rmBtn = document.createElement("button");
-        rmBtn.textContent = "Remove";
-        rmBtn.className = "remove";
-        rmBtn.onclick = () => {
-          data.splice(i,1);
-          renderTable(tableId, data, columns, onRemove);
-        };
-        td.appendChild(rmBtn);
-      } else {
-        const input = document.createElement("input");
-        input.value = item[col] || "";
-        input.oninput = e => item[col] = e.target.value;
-        td.appendChild(input);
+      if (!robloxUsername || !displayName || !userid) {
+        document.getElementById('status').innerText = 'All fields are required!';
+        return;
       }
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-}
 
-function loadData() {
-  Promise.all([apiGetFile(TEAM_FILE), apiGetFile(WHITELIST_FILE)])
-    .then(([teamResp, whitelistResp]) => {
-      teamSha = teamResp.sha;
-      whitelistSha = whitelistResp.sha;
-      teamData = JSON.parse(atob(teamResp.content));
-      whitelistData = JSON.parse(atob(whitelistResp.content));
-      renderTable("teamTable", teamData, ["email","password","role","actions"]);
-      renderTable("whitelistTable", whitelistData, ["discorduser","displayname","robloxuser","userid","actions"]);
-      status("Data loaded.");
-    })
-    .catch(e => status("Error loading data: " + e.message));
-}
+      const newUser = { robloxUsername, displayName, userid };
+      whitelist.push(newUser);
+      await save();
+    }
 
-function saveData() {
-  status("Saving...");
-  Promise.all([
-    apiPutFile(TEAM_FILE, teamData, teamSha),
-    apiPutFile(WHITELIST_FILE, whitelistData, whitelistSha)
-  ]).then(([teamRes, whitelistRes]) => {
-    teamSha = teamRes.content.sha;
-    whitelistSha = whitelistRes.content.sha;
-    status("Save successful!");
-  }).catch(e => status("Save failed: " + e.message));
-}
+    function remove(index) {
+      whitelist.splice(index, 1);
+      save();
+    }
 
-function status(text) {
-  document.getElementById("status").textContent = text;
-}
+    async function save() {
+      const status = document.getElementById('status');
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            path: "data/whitelist.json",
+            message: "Whitelist updated",
+            content: whitelist
+          })
+        });
+        load();
+        status.innerText = '';
+      } catch (error) {
+        status.innerText = 'Failed to save the whitelist. Please try again later.';
+      }
+    }
 
-document.getElementById("addTeam").onclick = () => {
-  teamData.push({email:"",password:"",role:""});
-  renderTable("teamTable", teamData, ["email","password","role","actions"]);
-};
+    load();
+  </script>
 
-document.getElementById("addWhitelist").onclick = () => {
-  whitelistData.push({discorduser:"",displayname:"",robloxuser:"",userid:""});
-  renderTable("whitelistTable", whitelistData, ["discorduser","displayname","robloxuser","userid","actions"]);
-};
-
-document.getElementById("saveBtn").onclick = saveData;
-
-loadData();
-</script>
 </body>
 </html>
