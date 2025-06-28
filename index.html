@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guard Plugin Admin</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; color: #222; }
+  #login, #owner-panel, #staff-panel { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  h2 { margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
+  th { background: #222; color: white; }
+  button, .btn { cursor: pointer; padding: 6px 12px; border: none; border-radius: 4px; background: #222; color: white; transition: background 0.3s; }
+  button:hover, .btn:hover { background: #555; }
+  .input-small { width: 150px; padding: 5px; }
+  .pointer { cursor: pointer; }
+  .hidden { display: none; }
+  .toggle-pass { user-select: none; color: #888; margin-left: 6px; font-weight: bold; }
+  .plus-btn { font-size: 18px; font-weight: bold; padding: 0 8px; line-height: 1; }
+  img.pfp { width: 40px; height: 40px; border-radius: 50%; vertical-align: middle; }
+  .nav-btn { margin-right: 10px; }
+  .flex-row { display: flex; align-items: center; gap: 10px; }
+  .error { color: red; margin-top: 10px; }
+  .success { color: green; margin-top: 10px; }
+  select { padding: 5px; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>Login</h2>
+  <label>Email: <input type="email" id="login-email" placeholder="Email" required></label><br><br>
+  <label>Password: <input type="password" id="login-password" placeholder="Password" required></label>
+  <span id="pass-toggle" class="toggle-pass pointer">Show</span>
+  <br><br>
+  <button id="login-btn">Login</button>
+  <div id="login-error" class="error"></div>
+</div>
+
+<!-- Owner Panel -->
+<div id="owner-panel" class="hidden">
+  <h2>Owner Dashboard</h2>
+  <div class="flex-row">
+    <button class="nav-btn btn" id="owner-nav-team">Team Manager</button>
+    <button class="nav-btn btn" id="owner-nav-whitelist">Whitelist Manager</button>
+    <button class="nav-btn btn" id="owner-nav-logout">Logout</button>
+  </div>
+
+  <div id="owner-team-section">
+    <h3>Team Manager</h3>
+    <table id="team-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Password</th>
+          <th>Remove</th>
+          <th>Change Permission</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- team members rows inserted here -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><input type="email" id="team-add-email" class="input-small" placeholder="Email"></td>
+          <td>
+            <input type="password" id="team-add-password" class="input-small" placeholder="Password">
+            <span id="team-pass-toggle" class="toggle-pass pointer">Show</span>
+          </td>
+          <td></td>
+          <td>
+            <select id="team-add-permission">
+              <option>Staff</option>
+              <option>Owner</option>
+            </select>
+          </td>
+          <td><button id="team-add-btn" class="btn plus-btn">+</button></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div id="team-msg" class="error"></div>
+  </div>
+
+  <div id="owner-whitelist-section" class="hidden">
+    <h3>Whitelist Manager</h3>
+    <table id="whitelist-table">
+      <thead>
+        <tr>
+          <th>Roblox PFP</th>
+          <th>Discord User</th>
+          <th>Roblox Display Name</th>
+          <th>Roblox User</th>
+          <th>UserID</th>
+          <th>Change</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- whitelist rows -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td></td>
+          <td><input type="text" id="wl-add-discord" class="input-small" placeholder="Discord User"></td>
+          <td><input type="text" id="wl-add-displayname" class="input-small" placeholder="Display Name"></td>
+          <td><input type="text" id="wl-add-robloxuser" class="input-small" placeholder="Roblox User"></td>
+          <td><input type="number" id="wl-add-userid" class="input-small" placeholder="UserID"></td>
+          <td></td>
+          <td><button id="wl-add-btn" class="btn plus-btn">+</button></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div id="wl-msg" class="error"></div>
+  </div>
+</div>
+
+<!-- Staff Panel -->
+<div id="staff-panel" class="hidden">
+  <h2>Staff Dashboard</h2>
+  <div class="flex-row">
+    <button class="nav-btn btn" id="staff-nav-whitelist">Whitelist Manager</button>
+    <button class="nav-btn btn" id="staff-nav-logout">Logout</button>
+  </div>
+  <div id="staff-whitelist-section">
+    <h3>Whitelist Manager</h3>
+    <table id="staff-whitelist-table">
+      <thead>
+        <tr>
+          <th>Roblox PFP</th>
+          <th>Discord User</th>
+          <th>Roblox Display Name</th>
+          <th>Roblox User</th>
+          <th>UserID</th>
+          <th>Change</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- staff whitelist rows -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td></td>
+          <td><input type="text" id="staff-wl-add-discord" class="input-small" placeholder="Discord User"></td>
+          <td><input type="text" id="staff-wl-add-displayname" class="input-small" placeholder="Display Name"></td>
+          <td><input type="text" id="staff-wl-add-robloxuser" class="input-small" placeholder="Roblox User"></td>
+          <td><input type="number" id="staff-wl-add-userid" class="input-small" placeholder="UserID"></td>
+          <td></td>
+          <td><button id="staff-wl-add-btn" class="btn plus-btn">+</button></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div id="staff-wl-msg" class="error"></div>
+  </div>
+</div>
+
+<script>
+// Hardcoded users DB simulation
+const USERS_DB = [
+  { email: "o@owner.com", password: "OwnerPass1!", role: "owner" },
+  { email: "staff1@example.com", password: "staffpass", role: "staff" },
+];
+
+// Simulated persistent storage (could be replaced with backend)
+let teamMembers = [
+  { email: "o@owner.com", password: "OwnerPass1!", permission: "Owner" },
+  { email: "staff1@example.com", password: "staffpass", permission: "Staff" },
+];
+
+let whitelist = [
+  { discordUser: "DiscordUser#1234", displayName: "RobloxDisplay", robloxUser: "robloxuser1", userid: 1234567 },
+];
+
+// Helper to create Roblox PFP URL
+function robloxPFPUrl(userid) {
+  return `https://www.roblox.com/headshot-thumbnail/image?userId=${userid}&width=48&height=48&format=png`;
+}
+
+// Elements
+const loginDiv = document.getElementById("login");
+const ownerPanel = document.getElementById("owner-panel");
+const staffPanel = document.getElementById("staff-panel");
+
+const loginEmail = document.getElementById("login-email");
+const loginPassword = document.getElementById("login-password");
+const loginBtn = document.getElementById("login-btn");
+const loginError = document.getElementById("login-error");
+const passToggle = document.getElementById("pass-toggle");
+
+const ownerNavTeam = document.getElementById("owner-nav-team");
+const ownerNavWhitelist = document.getElementById("owner-nav-whitelist");
+const ownerNavLogout = document.getElementById("owner-nav-logout");
+const ownerTeamSection = document.getElementById("owner-team-section");
+const ownerWhitelistSection = document.getElementById("owner-whitelist-section");
+
+const staffNavWhitelist = document.getElementById("staff-nav-whitelist");
+const staffNavLogout = document.getElementById("staff-nav-logout");
+const staffWhitelistSection = document.getElementById("staff-whitelist-section");
+
+let currentUser = null;
+
+// Toggle password visibility login
+passToggle.addEventListener("click", () => {
+  if (loginPassword.type === "password") {
+    loginPassword.type = "text";
+    passToggle.textContent = "Hide";
+  } else {
+    loginPassword.type = "password";
+    passToggle.textContent = "Show";
+  }
+});
+
+function showLoginError(msg) {
+  loginError.textContent = msg;
+}
+
+function clearLoginError() {
+  loginError.textContent = "";
+}
+
+function clearInputs() {
+  loginEmail.value = "";
+  loginPassword.value = "";
+}
+
+// Login handler
+loginBtn.addEventListener("click", () => {
+  clearLoginError();
+  const email = loginEmail.value.trim().toLowerCase();
+  const password = loginPassword.value;
+
+  if (!email || !password) {
+    showLoginError("Email and password required.");
+    return;
+  }
+
+  // Check user in USERS_DB
+  const user = USERS_DB.find(u => u.email === email && u.password === password);
+  if (!user) {
+    showLoginError("Invalid email or password.");
+    return;
+  }
+
+  currentUser = user;
+
+  // Show appropriate panel
+  loginDiv.classList.add("hidden");
+  if (user.role === "owner") {
+    ownerPanel.classList.remove("hidden");
+    ownerTeamSection.classList.remove("hidden");
+    ownerWhitelistSection.classList.add("hidden");
+    renderTeamTable();
+    renderWhitelistTable();
+  } else {
+    staffPanel.classList.remove("hidden");
+    renderStaffWhitelistTable();
+  }
+  clearInputs();
+});
+
+// Owner nav handlers
+ownerNavTeam.addEventListener("click", () => {
+  ownerTeamSection.classList.remove("hidden");
+  ownerWhitelistSection.classList.add("hidden");
+});
+ownerNavWhitelist.addEventListener("click", () => {
+  ownerTeamSection.classList.add("hidden");
+  ownerWhitelistSection.classList.remove("hidden");
+});
+ownerNavLogout.addEventListener("click", () => {
+  currentUser = null;
+  ownerPanel.classList.add("hidden");
+  loginDiv.classList.remove("hidden");
+});
+
+// Staff nav handlers
+staffNavWhitelist.addEventListener("click", () => {
+  staffWhitelistSection.classList.remove("hidden");
+});
+staffNavLogout.addEventListener("click", () => {
+  currentUser = null;
+  staffPanel.classList.add("hidden");
+  loginDiv.classList.remove("hidden");
+});
+
+// --- TEAM MANAGER --- //
+
+const teamTableBody = document.querySelector("#team-table tbody");
+const teamAddEmail = document.getElementById("team-add-email");
+const teamAddPassword = document.getElementById("team-add-password");
+const teamAddPermission = document.getElementById("team-add-permission");
+const teamAddBtn = document.getElementById("team-add-btn");
+const teamPassToggle = document.getElementById("team-pass-toggle");
+const teamMsg = document.getElementById("team-msg");
+
+teamPassToggle.addEventListener("click", () => {
+  if (teamAddPassword.type === "password") {
+    teamAddPassword.type = "text";
+    teamPassToggle.textContent = "Hide";
+  } else {
+    teamAddPassword.type = "password";
+    teamPassToggle.textContent = "Show";
+  }
+});
+
+function renderTeamTable() {
+  teamTableBody.innerHTML = "";
+  teamMsg.textContent = "";
+
+  teamMembers.forEach((member, index) => {
+    const tr = document.createElement("tr");
+
+    // Email
+    const tdEmail = document.createElement("td");
+    tdEmail.textContent = member.email;
+    tr.appendChild(tdEmail);
+
+    // Password (masked toggle)
+    const tdPass = document.createElement("td");
+    const passSpan = document.createElement("span");
+    passSpan.textContent = "••••••••";
+    passSpan.style.cursor = "pointer";
+    passSpan.title = "Click to toggle password";
+    let showing = false;
+    passSpan.onclick = () => {
+      if (showing) {
+        passSpan.textContent = "••••••••";
+      } else {
+        passSpan.textContent = member.password;
+      }
+      showing = !showing;
+    };
+    tdPass.appendChild(passSpan);
+    tr.appendChild(tdPass);
+
+    // Remove button
+    const tdRemove = document.createElement("td");
+    if (member.email === "o@owner.com") {
+      tdRemove.textContent = "—"; // Cannot remove owner
+    } else {
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "Remove";
+      removeBtn.className = "btn";
+      removeBtn.onclick = () => {
+        if (confirm(`Remove team member ${member.email}?`)) {
+          teamMembers.splice(index, 1);
+          renderTeamTable();
+        }
+      };
+      tdRemove.appendChild(removeBtn);
+    }
+    tr.appendChild(tdRemove);
+
+    // Change Permission dropdown
+    const tdPerm = document.createElement("td");
+    if (member.email === "o@owner.com") {
+      tdPerm.textContent = "Owner";
+    } else {
+      const selectPerm = document.createElement("select");
+      ["Staff", "Owner"].forEach(role => {
+        const opt = document.createElement("option");
+        opt.value = role;
+        opt.textContent = role;
+        if (member.permission === role) opt.selected = true;
+        selectPerm.appendChild(opt);
+      });
+      selectPerm.onchange = () => {
+        member.permission = selectPerm.value;
+        // Reflect change in USERS_DB too (for login)
+        const dbUser = USERS_DB.find(u => u.email === member.email);
+        if (dbUser) dbUser.role = member.permission.toLowerCase();
+      };
+      tdPerm.appendChild(selectPerm);
+    }
+    tr.appendChild(tdPerm);
+
+    teamTableBody.appendChild(tr);
+  });
+}
+
+teamAddBtn.addEventListener("click", () => {
+  teamMsg.textContent = "";
+  const email = teamAddEmail.value.trim().toLowerCase();
+  const password = teamAddPassword.value;
+  const permission = teamAddPermission.value;
+
+  if (!email || !password) {
+    teamMsg.textContent = "Email and password are required.";
+    return;
+  }
+
+  if (teamMembers.some(m => m.email === email)) {
+    teamMsg.textContent = "This email already exists.";
+    return;
+  }
+
+  // Add to team and USERS_DB
+  teamMembers.push({ email, password, permission });
+  USERS_DB.push({ email, password, role: permission.toLowerCase() });
+  teamAddEmail.value = "";
+  teamAddPassword.value = "";
+  renderTeamTable();
+});
+
+// --- WHITELIST MANAGER (OWNER) --- //
+
+const whitelistTableBody = document.querySelector("#whitelist-table tbody");
+const wlAddDiscord = document.getElementById("wl-add-discord");
+const wlAddDisplayName = document.getElementById("wl-add-displayname");
+const wlAddRobloxUser = document.getElementById("wl-add-robloxuser");
+const wlAddUserID = document.getElementById("wl-add-userid");
+const wlAddBtn = document.getElementById("wl-add-btn");
+const wlMsg = document.getElementById("wl-msg");
+
+function renderWhitelistTable() {
+  whitelistTableBody.innerHTML = "";
+  wlMsg.textContent = "";
+
+  whitelist.forEach((entry, index) => {
+    const tr = document.createElement("tr");
+
+    // Roblox PFP
+    const tdPFP = document.createElement("td");
+    const img = document.createElement("img");
+    img.src = robloxPFPUrl(entry.userid);
+    img.alt = entry.robloxUser;
+    img.className = "pfp";
+    tdPFP.appendChild(img);
+    tr.appendChild(tdPFP);
+
+    // Discord User
+    const tdDiscord = document.createElement("td");
+    tdDiscord.textContent = entry.discordUser;
+    tr.appendChild(tdDiscord);
+
+    // Display Name
+    const tdDisplay = document.createElement("td");
+    tdDisplay.textContent = entry.displayName;
+    tr.appendChild(tdDisplay);
+
+    // Roblox Username (editable)
+    const tdRobloxUser = document.createElement("td");
+    const robloxInput = document.createElement("input");
+    robloxInput.value = entry.robloxUser;
+    robloxInput.className = "input-small";
+    robloxInput.onchange = () => {
+      entry.robloxUser = robloxInput.value.trim();
+      renderWhitelistTable();
+    };
+    tdRobloxUser.appendChild(robloxInput);
+    tr.appendChild(tdRobloxUser);
+
+    // UserID (editable)
+    const tdUserID = document.createElement("td");
+    const userIdInput = document.createElement("input");
+    userIdInput.type = "number";
+    userIdInput.value = entry.userid;
+    userIdInput.className = "input-small";
+    userIdInput.onchange = () => {
+      entry.userid = Number(userIdInput.value);
+      renderWhitelistTable();
+    };
+    tdUserID.appendChild(userIdInput);
+    tr.appendChild(tdUserID);
+
+    // Change (Discord user editable)
+    const tdChange = document.createElement("td");
+    const discordInput = document.createElement("input");
+    discordInput.value = entry.discordUser;
+    discordInput.className = "input-small";
+    discordInput.onchange = () => {
+      entry.discordUser = discordInput.value.trim();
+      renderWhitelistTable();
+    };
+    tdChange.appendChild(discordInput);
+    tr.appendChild(tdChange);
+
+    // Remove
+    const tdRemove = document.createElement("td");
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "Remove";
+    removeBtn.className = "btn";
+    removeBtn.onclick = () => {
+      if (confirm(`Remove whitelist entry for ${entry.robloxUser}?`)) {
+        whitelist.splice(index, 1);
+        renderWhitelistTable();
+      }
+    };
+    tdRemove.appendChild(removeBtn);
+    tr.appendChild(tdRemove);
+
+    whitelistTableBody.appendChild(tr);
+  });
+}
+
+wlAddBtn.addEventListener("click", () => {
+  wlMsg.textContent = "";
+  const discordUser = wlAddDiscord.value.trim();
+  const displayName = wlAddDisplayName.value.trim();
+  const robloxUser = wlAddRobloxUser.value.trim();
+  const userid = Number(wlAddUserID.value);
+
+  if (!discordUser || !displayName || !robloxUser || !userid) {
+    wlMsg.textContent = "All fields are required.";
+    return;
+  }
+
+  if (whitelist.some(wl => wl.userid === userid)) {
+    wlMsg.textContent = "UserID already in whitelist.";
+    return;
+  }
+
+  whitelist.push({ discordUser, displayName, robloxUser, userid });
+  wlAddDiscord.value = "";
+  wlAddDisplayName.value = "";
+  wlAddRobloxUser.value = "";
+  wlAddUserID.value = "";
+  renderWhitelistTable();
+});
+
+// --- STAFF WHITELIST --- //
+
+const staffWhitelistTableBody = document.querySelector("#staff-whitelist-table tbody");
+const staffWlAddDiscord = document.getElementById("staff-wl-add-discord");
+const staffWlAddDisplayName = document.getElementById("staff-wl-add-displayname");
+const staffWlAddRobloxUser = document.getElementById("staff-wl-add-robloxuser");
+const staffWlAddUserID = document.getElementById("staff-wl-add-userid");
+const staffWlAddBtn = document.getElementById("staff-wl-add-btn");
+const staffWlMsg = document.getElementById("staff-wl-msg");
+
+function renderStaffWhitelistTable() {
+  staffWhitelistTableBody.innerHTML = "";
+  staffWlMsg.textContent = "";
+
+  whitelist.forEach((entry, index) => {
+    const tr = document.createElement("tr");
+
+    const tdPFP = document.createElement("td");
+    const img = document.createElement("img");
+    img.src = robloxPFPUrl(entry.userid);
+    img.alt = entry.robloxUser;
+    img.className = "pfp";
+    tdPFP.appendChild(img);
+    tr.appendChild(tdPFP);
+
+    const tdDiscord = document.createElement("td");
+    tdDiscord.textContent = entry.discordUser;
+    tr.appendChild(tdDiscord);
+
+    const tdDisplay = document.createElement("td");
+    tdDisplay.textContent = entry.displayName;
+    tr.appendChild(tdDisplay);
+
+    const tdRobloxUser = document.createElement("td");
+    const robloxInput = document.createElement("input");
+    robloxInput.value = entry.robloxUser;
+    robloxInput.className = "input-small";
+    robloxInput.onchange = () => {
+      entry.robloxUser = robloxInput.value.trim();
+      renderStaffWhitelistTable();
+    };
+    tdRobloxUser.appendChild(robloxInput);
+    tr.appendChild(tdRobloxUser);
+
+    const tdUserID = document.createElement("td");
+    const userIdInput = document.createElement("input");
+    userIdInput.type = "number";
+    userIdInput.value = entry.userid;
+    userIdInput.className = "input-small";
+    userIdInput.onchange = () => {
+      entry.userid = Number(userIdInput.value);
+      renderStaffWhitelistTable();
+    };
+    tdUserID.appendChild(userIdInput);
+    tr.appendChild(tdUserID);
+
+    const tdChange = document.createElement("td");
+    const discordInput = document.createElement("input");
+    discordInput.value = entry.discordUser;
+    discordInput.className = "input-small";
+    discordInput.onchange = () => {
+      entry.discordUser = discordInput.value.trim();
+      renderStaffWhitelistTable();
+    };
+    tdChange.appendChild(discordInput);
+    tr.appendChild(tdChange);
+
+    const tdRemove = document.createElement("td");
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "Remove";
+    removeBtn.className = "btn";
+    removeBtn.onclick = () => {
+      if (confirm(`Remove whitelist entry for ${entry.robloxUser}?`)) {
+        whitelist.splice(index, 1);
+        renderStaffWhitelistTable();
+      }
+    };
+    tdRemove.appendChild(removeBtn);
+    tr.appendChild(tdRemove);
+
+    staffWhitelistTableBody.appendChild(tr);
+  });
+}
+
+staffWlAddBtn.addEventListener("click", () => {
+  staffWlMsg.textContent = "";
+  const discordUser = staffWlAddDiscord.value.trim();
+  const displayName = staffWlAddDisplayName.value.trim();
+  const robloxUser = staffWlAddRobloxUser.value.trim();
+  const userid = Number(staffWlAddUserID.value);
+
+  if (!discordUser || !displayName || !robloxUser || !userid) {
+    staffWlMsg.textContent = "All fields are required.";
+    return;
+  }
+
+  if (whitelist.some(wl => wl.userid === userid)) {
+    staffWlMsg.textContent = "UserID already in whitelist.";
+    return;
+  }
+
+  whitelist.push({ discordUser, displayName, robloxUser, userid });
+  staffWlAddDiscord.value = "";
+  staffWlAddDisplayName.value = "";
+  staffWlAddRobloxUser.value = "";
+  staffWlAddUserID.value = "";
+  renderStaffWhitelistTable();
+});
+</script>
+
+</body>
+</html>
