@@ -3,88 +3,137 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Guard Plugin Admin</title>
+<title>Guard Plugin Manager</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; color: #222; }
-  #login, #owner-panel, #staff-panel { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-  h2 { margin-top: 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
-  th { background: #222; color: white; }
-  button, .btn { cursor: pointer; padding: 6px 12px; border: none; border-radius: 4px; background: #222; color: white; transition: background 0.3s; }
-  button:hover, .btn:hover { background: #555; }
-  .input-small { width: 150px; padding: 5px; }
-  .pointer { cursor: pointer; }
-  .hidden { display: none; }
-  .toggle-pass { user-select: none; color: #888; margin-left: 6px; font-weight: bold; }
-  .plus-btn { font-size: 18px; font-weight: bold; padding: 0 8px; line-height: 1; }
-  img.pfp { width: 40px; height: 40px; border-radius: 50%; vertical-align: middle; }
-  .nav-btn { margin-right: 10px; }
-  .flex-row { display: flex; align-items: center; gap: 10px; }
-  .error { color: red; margin-top: 10px; }
-  .success { color: green; margin-top: 10px; }
-  select { padding: 5px; }
+  /* Dark theme basics */
+  body {
+    background: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 0;
+  }
+  header {
+    background: #1f1f1f;
+    padding: 10px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #333;
+  }
+  header h1 {
+    margin: 0; font-weight: 600;
+  }
+  main {
+    padding: 20px;
+  }
+  nav button {
+    background: #333;
+    color: #eee;
+    border: none;
+    margin-right: 10px;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  nav button.active, nav button:hover {
+    background: #0066ff;
+    color: white;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  th, td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #333;
+    text-align: left;
+  }
+  th {
+    background: #222;
+  }
+  tr:hover {
+    background: #1a73e8;
+  }
+  input[type="text"], input[type="password"], input[type="number"] {
+    background: #222;
+    border: 1px solid #444;
+    color: #eee;
+    padding: 5px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 4px;
+  }
+  button.action-btn {
+    background: #0066ff;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.action-btn.remove {
+    background: #e84444;
+  }
+  .password-cell {
+    position: relative;
+    cursor: pointer;
+  }
+  .password-cell span {
+    user-select: none;
+  }
+  .add-btn {
+    background: transparent;
+    color: #00ff88;
+    font-size: 20px;
+    cursor: pointer;
+    font-weight: 700;
+    border: none;
+  }
+  #status {
+    margin-top: 15px;
+    font-weight: 600;
+  }
+  .hidden {
+    display: none;
+  }
 </style>
 </head>
 <body>
-
-<div id="login">
-  <h2>Login</h2>
-  <label>Email: <input type="email" id="login-email" placeholder="Email" required></label><br><br>
-  <label>Password: <input type="password" id="login-password" placeholder="Password" required></label>
-  <span id="pass-toggle" class="toggle-pass pointer">Show</span>
-  <br><br>
-  <button id="login-btn">Login</button>
-  <div id="login-error" class="error"></div>
-</div>
-
-<!-- Owner Panel -->
-<div id="owner-panel" class="hidden">
-  <h2>Owner Dashboard</h2>
-  <div class="flex-row">
-    <button class="nav-btn btn" id="owner-nav-team">Team Manager</button>
-    <button class="nav-btn btn" id="owner-nav-whitelist">Whitelist Manager</button>
-    <button class="nav-btn btn" id="owner-nav-logout">Logout</button>
+<header>
+  <h1>Guard Plugin Manager</h1>
+  <div>
+    <span id="userRoleDisplay"></span>
+    <button id="logoutBtn" style="background:#e84444; margin-left:15px;">Logout</button>
   </div>
-
-  <div id="owner-team-section">
-    <h3>Team Manager</h3>
-    <table id="team-table">
+</header>
+<nav id="navButtons"></nav>
+<main>
+  <section id="teamManagerSection" class="hidden">
+    <h2>Team Manager</h2>
+    <table id="teamTable">
       <thead>
         <tr>
           <th>Email</th>
-          <th>Password</th>
+          <th>Password (Click to toggle)</th>
           <th>Remove</th>
           <th>Change Permission</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- team members rows inserted here -->
-      </tbody>
+      <tbody></tbody>
       <tfoot>
         <tr>
-          <td><input type="email" id="team-add-email" class="input-small" placeholder="Email"></td>
-          <td>
-            <input type="password" id="team-add-password" class="input-small" placeholder="Password">
-            <span id="team-pass-toggle" class="toggle-pass pointer">Show</span>
+          <td colspan="4" style="text-align:center">
+            <button class="add-btn" id="addTeamBtn" title="Add Team Member">＋</button>
           </td>
-          <td></td>
-          <td>
-            <select id="team-add-permission">
-              <option>Staff</option>
-              <option>Owner</option>
-            </select>
-          </td>
-          <td><button id="team-add-btn" class="btn plus-btn">+</button></td>
         </tr>
       </tfoot>
     </table>
-    <div id="team-msg" class="error"></div>
-  </div>
+  </section>
 
-  <div id="owner-whitelist-section" class="hidden">
-    <h3>Whitelist Manager</h3>
-    <table id="whitelist-table">
+  <section id="whitelistSection" class="hidden">
+    <h2>Whitelist Manager</h2>
+    <table id="whitelistTable">
       <thead>
         <tr>
           <th>Roblox PFP</th>
@@ -96,538 +145,342 @@
           <th>Remove</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- whitelist rows -->
-      </tbody>
+      <tbody></tbody>
       <tfoot>
         <tr>
-          <td></td>
-          <td><input type="text" id="wl-add-discord" class="input-small" placeholder="Discord User"></td>
-          <td><input type="text" id="wl-add-displayname" class="input-small" placeholder="Display Name"></td>
-          <td><input type="text" id="wl-add-robloxuser" class="input-small" placeholder="Roblox User"></td>
-          <td><input type="number" id="wl-add-userid" class="input-small" placeholder="UserID"></td>
-          <td></td>
-          <td><button id="wl-add-btn" class="btn plus-btn">+</button></td>
+          <td colspan="7" style="text-align:center">
+            <button class="add-btn" id="addWhitelistBtn" title="Add Whitelist Entry">＋</button>
+          </td>
         </tr>
       </tfoot>
     </table>
-    <div id="wl-msg" class="error"></div>
-  </div>
-</div>
-
-<!-- Staff Panel -->
-<div id="staff-panel" class="hidden">
-  <h2>Staff Dashboard</h2>
-  <div class="flex-row">
-    <button class="nav-btn btn" id="staff-nav-whitelist">Whitelist Manager</button>
-    <button class="nav-btn btn" id="staff-nav-logout">Logout</button>
-  </div>
-  <div id="staff-whitelist-section">
-    <h3>Whitelist Manager</h3>
-    <table id="staff-whitelist-table">
-      <thead>
-        <tr>
-          <th>Roblox PFP</th>
-          <th>Discord User</th>
-          <th>Roblox Display Name</th>
-          <th>Roblox User</th>
-          <th>UserID</th>
-          <th>Change</th>
-          <th>Remove</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- staff whitelist rows -->
-      </tbody>
-      <tfoot>
-        <tr>
-          <td></td>
-          <td><input type="text" id="staff-wl-add-discord" class="input-small" placeholder="Discord User"></td>
-          <td><input type="text" id="staff-wl-add-displayname" class="input-small" placeholder="Display Name"></td>
-          <td><input type="text" id="staff-wl-add-robloxuser" class="input-small" placeholder="Roblox User"></td>
-          <td><input type="number" id="staff-wl-add-userid" class="input-small" placeholder="UserID"></td>
-          <td></td>
-          <td><button id="staff-wl-add-btn" class="btn plus-btn">+</button></td>
-        </tr>
-      </tfoot>
-    </table>
-    <div id="staff-wl-msg" class="error"></div>
-  </div>
-</div>
+  </section>
+  
+  <div id="status"></div>
+</main>
 
 <script>
-// Hardcoded users DB simulation
-const USERS_DB = [
-  { email: "o@owner.com", password: "OwnerPass1!", role: "owner" },
-  { email: "staff1@example.com", password: "staffpass", role: "staff" },
-];
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyBCQ7BxI4RViyGWYPgXBlG3Ta1k4KJHJSOLxoSwCFMS8v9fs4pmL4ckz9iYHDpeB_o/exec";
+const WEB_APP_PASSWORD = "SecretAccessKey123!";
 
-// Simulated persistent storage (could be replaced with backend)
-let teamMembers = [
-  { email: "o@owner.com", password: "OwnerPass1!", permission: "Owner" },
-  { email: "staff1@example.com", password: "staffpass", permission: "Staff" },
-];
+let currentUser = null; // {email, role}
+let teamMembers = [];
+let whitelist = [];
 
-let whitelist = [
-  { discordUser: "DiscordUser#1234", displayName: "RobloxDisplay", robloxUser: "robloxuser1", userid: 1234567 },
-];
+const userRoleDisplay = document.getElementById("userRoleDisplay");
+const navButtons = document.getElementById("navButtons");
+const teamSection = document.getElementById("teamManagerSection");
+const whitelistSection = document.getElementById("whitelistSection");
+const statusDiv = document.getElementById("status");
+const logoutBtn = document.getElementById("logoutBtn");
 
-// Helper to create Roblox PFP URL
-function robloxPFPUrl(userid) {
-  return `https://www.roblox.com/headshot-thumbnail/image?userId=${userid}&width=48&height=48&format=png`;
-}
-
-// Elements
-const loginDiv = document.getElementById("login");
-const ownerPanel = document.getElementById("owner-panel");
-const staffPanel = document.getElementById("staff-panel");
-
-const loginEmail = document.getElementById("login-email");
-const loginPassword = document.getElementById("login-password");
-const loginBtn = document.getElementById("login-btn");
-const loginError = document.getElementById("login-error");
-const passToggle = document.getElementById("pass-toggle");
-
-const ownerNavTeam = document.getElementById("owner-nav-team");
-const ownerNavWhitelist = document.getElementById("owner-nav-whitelist");
-const ownerNavLogout = document.getElementById("owner-nav-logout");
-const ownerTeamSection = document.getElementById("owner-team-section");
-const ownerWhitelistSection = document.getElementById("owner-whitelist-section");
-
-const staffNavWhitelist = document.getElementById("staff-nav-whitelist");
-const staffNavLogout = document.getElementById("staff-nav-logout");
-const staffWhitelistSection = document.getElementById("staff-whitelist-section");
-
-let currentUser = null;
-
-// Toggle password visibility login
-passToggle.addEventListener("click", () => {
-  if (loginPassword.type === "password") {
-    loginPassword.type = "text";
-    passToggle.textContent = "Hide";
-  } else {
-    loginPassword.type = "password";
-    passToggle.textContent = "Show";
-  }
-});
-
-function showLoginError(msg) {
-  loginError.textContent = msg;
-}
-
-function clearLoginError() {
-  loginError.textContent = "";
-}
-
-function clearInputs() {
-  loginEmail.value = "";
-  loginPassword.value = "";
-}
-
-// Login handler
-loginBtn.addEventListener("click", () => {
-  clearLoginError();
-  const email = loginEmail.value.trim().toLowerCase();
-  const password = loginPassword.value;
-
-  if (!email || !password) {
-    showLoginError("Email and password required.");
-    return;
-  }
-
-  // Check user in USERS_DB
-  const user = USERS_DB.find(u => u.email === email && u.password === password);
-  if (!user) {
-    showLoginError("Invalid email or password.");
-    return;
-  }
-
+// LOGIN (basic prompt for demo)
+async function login() {
+  const email = prompt("Enter your email:");
+  if(!email) return alert("Login cancelled");
+  const password = prompt("Enter your password:");
+  if(!password) return alert("Login cancelled");
+  
+  await fetchData();
+  
+  // Check if email and password match team members
+  const user = teamMembers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+  if(!user) return alert("Invalid login credentials");
+  
   currentUser = user;
-
-  // Show appropriate panel
-  loginDiv.classList.add("hidden");
-  if (user.role === "owner") {
-    ownerPanel.classList.remove("hidden");
-    ownerTeamSection.classList.remove("hidden");
-    ownerWhitelistSection.classList.add("hidden");
-    renderTeamTable();
-    renderWhitelistTable();
-  } else {
-    staffPanel.classList.remove("hidden");
-    renderStaffWhitelistTable();
-  }
-  clearInputs();
-});
-
-// Owner nav handlers
-ownerNavTeam.addEventListener("click", () => {
-  ownerTeamSection.classList.remove("hidden");
-  ownerWhitelistSection.classList.add("hidden");
-});
-ownerNavWhitelist.addEventListener("click", () => {
-  ownerTeamSection.classList.add("hidden");
-  ownerWhitelistSection.classList.remove("hidden");
-});
-ownerNavLogout.addEventListener("click", () => {
-  currentUser = null;
-  ownerPanel.classList.add("hidden");
-  loginDiv.classList.remove("hidden");
-});
-
-// Staff nav handlers
-staffNavWhitelist.addEventListener("click", () => {
-  staffWhitelistSection.classList.remove("hidden");
-});
-staffNavLogout.addEventListener("click", () => {
-  currentUser = null;
-  staffPanel.classList.add("hidden");
-  loginDiv.classList.remove("hidden");
-});
-
-// --- TEAM MANAGER --- //
-
-const teamTableBody = document.querySelector("#team-table tbody");
-const teamAddEmail = document.getElementById("team-add-email");
-const teamAddPassword = document.getElementById("team-add-password");
-const teamAddPermission = document.getElementById("team-add-permission");
-const teamAddBtn = document.getElementById("team-add-btn");
-const teamPassToggle = document.getElementById("team-pass-toggle");
-const teamMsg = document.getElementById("team-msg");
-
-teamPassToggle.addEventListener("click", () => {
-  if (teamAddPassword.type === "password") {
-    teamAddPassword.type = "text";
-    teamPassToggle.textContent = "Hide";
-  } else {
-    teamAddPassword.type = "password";
-    teamPassToggle.textContent = "Show";
-  }
-});
-
-function renderTeamTable() {
-  teamTableBody.innerHTML = "";
-  teamMsg.textContent = "";
-
-  teamMembers.forEach((member, index) => {
-    const tr = document.createElement("tr");
-
-    // Email
-    const tdEmail = document.createElement("td");
-    tdEmail.textContent = member.email;
-    tr.appendChild(tdEmail);
-
-    // Password (masked toggle)
-    const tdPass = document.createElement("td");
-    const passSpan = document.createElement("span");
-    passSpan.textContent = "••••••••";
-    passSpan.style.cursor = "pointer";
-    passSpan.title = "Click to toggle password";
-    let showing = false;
-    passSpan.onclick = () => {
-      if (showing) {
-        passSpan.textContent = "••••••••";
-      } else {
-        passSpan.textContent = member.password;
-      }
-      showing = !showing;
-    };
-    tdPass.appendChild(passSpan);
-    tr.appendChild(tdPass);
-
-    // Remove button
-    const tdRemove = document.createElement("td");
-    if (member.email === "o@owner.com") {
-      tdRemove.textContent = "—"; // Cannot remove owner
-    } else {
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "Remove";
-      removeBtn.className = "btn";
-      removeBtn.onclick = () => {
-        if (confirm(`Remove team member ${member.email}?`)) {
-          teamMembers.splice(index, 1);
-          renderTeamTable();
-        }
-      };
-      tdRemove.appendChild(removeBtn);
-    }
-    tr.appendChild(tdRemove);
-
-    // Change Permission dropdown
-    const tdPerm = document.createElement("td");
-    if (member.email === "o@owner.com") {
-      tdPerm.textContent = "Owner";
-    } else {
-      const selectPerm = document.createElement("select");
-      ["Staff", "Owner"].forEach(role => {
-        const opt = document.createElement("option");
-        opt.value = role;
-        opt.textContent = role;
-        if (member.permission === role) opt.selected = true;
-        selectPerm.appendChild(opt);
-      });
-      selectPerm.onchange = () => {
-        member.permission = selectPerm.value;
-        // Reflect change in USERS_DB too (for login)
-        const dbUser = USERS_DB.find(u => u.email === member.email);
-        if (dbUser) dbUser.role = member.permission.toLowerCase();
-      };
-      tdPerm.appendChild(selectPerm);
-    }
-    tr.appendChild(tdPerm);
-
-    teamTableBody.appendChild(tr);
-  });
+  userRoleDisplay.textContent = `${currentUser.email} (${currentUser.role})`;
+  setupNav();
+  showPageBasedOnRole();
 }
 
-teamAddBtn.addEventListener("click", () => {
-  teamMsg.textContent = "";
-  const email = teamAddEmail.value.trim().toLowerCase();
-  const password = teamAddPassword.value;
-  const permission = teamAddPermission.value;
-
-  if (!email || !password) {
-    teamMsg.textContent = "Email and password are required.";
-    return;
+// NAVIGATION SETUP
+function setupNav() {
+  navButtons.innerHTML = "";
+  if(currentUser.role.toLowerCase() === "owner") {
+    addNavButton("Team Manager", () => showSection("team"));
+    addNavButton("Whitelist Manager", () => showSection("whitelist"));
+    addNavButton("Logout", () => logout());
+  } else {
+    addNavButton("Whitelist Manager", () => showSection("whitelist"));
+    addNavButton("Logout", () => logout());
   }
-
-  if (teamMembers.some(m => m.email === email)) {
-    teamMsg.textContent = "This email already exists.";
-    return;
+  function addNavButton(name, onClick) {
+    const btn = document.createElement("button");
+    btn.textContent = name;
+    btn.onclick = () => {
+      setActiveButton(btn);
+      onClick();
+    };
+    navButtons.appendChild(btn);
   }
+}
+function setActiveButton(btn) {
+  [...navButtons.children].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
 
-  // Add to team and USERS_DB
-  teamMembers.push({ email, password, permission });
-  USERS_DB.push({ email, password, role: permission.toLowerCase() });
-  teamAddEmail.value = "";
-  teamAddPassword.value = "";
-  renderTeamTable();
-});
+function showSection(name) {
+  if(name === "team") {
+    teamSection.classList.remove("hidden");
+    whitelistSection.classList.add("hidden");
+  } else {
+    whitelistSection.classList.remove("hidden");
+    teamSection.classList.add("hidden");
+  }
+}
 
-// --- WHITELIST MANAGER (OWNER) --- //
+// LOGOUT
+function logout() {
+  currentUser = null;
+  userRoleDisplay.textContent = "";
+  teamSection.classList.add("hidden");
+  whitelistSection.classList.add("hidden");
+  navButtons.innerHTML = "";
+  clearTables();
+  login();
+}
 
-const whitelistTableBody = document.querySelector("#whitelist-table tbody");
-const wlAddDiscord = document.getElementById("wl-add-discord");
-const wlAddDisplayName = document.getElementById("wl-add-displayname");
-const wlAddRobloxUser = document.getElementById("wl-add-robloxuser");
-const wlAddUserID = document.getElementById("wl-add-userid");
-const wlAddBtn = document.getElementById("wl-add-btn");
-const wlMsg = document.getElementById("wl-msg");
+// CLEAR TABLES
+function clearTables() {
+  document.querySelector("#teamTable tbody").innerHTML = "";
+  document.querySelector("#whitelistTable tbody").innerHTML = "";
+}
 
-function renderWhitelistTable() {
-  whitelistTableBody.innerHTML = "";
-  wlMsg.textContent = "";
+// FETCH DATA FROM BACKEND
+async function fetchData() {
+  statusDiv.textContent = "Loading data...";
+  try {
+    const res = await fetch(WEB_APP_URL);
+    const data = await res.json();
+    teamMembers = data.team || [];
+    whitelist = data.whitelist || [];
+    statusDiv.textContent = "Data loaded.";
+  } catch(e) {
+    statusDiv.textContent = "Error loading data.";
+    alert("Failed to load data from server.");
+  }
+}
 
-  whitelist.forEach((entry, index) => {
+// SAVE DATA TO BACKEND
+async function saveData() {
+  statusDiv.textContent = "Saving data...";
+  try {
+    const payload = {
+      password: WEB_APP_PASSWORD,
+      action: "save",
+      data: {team: teamMembers, whitelist}
+    };
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if(result.success) {
+      statusDiv.textContent = "Data saved successfully!";
+    } else {
+      statusDiv.textContent = "Error saving data: " + (result.error || "Unknown error");
+      alert("Error saving data: " + (result.error || "Unknown error"));
+    }
+  } catch(e) {
+    statusDiv.textContent = "Error saving data.";
+    alert("Failed to save data to server.");
+  }
+}
+
+// RENDER TEAM TABLE
+function renderTeamTable() {
+  const tbody = document.querySelector("#teamTable tbody");
+  tbody.innerHTML = "";
+  teamMembers.forEach((member, idx) => {
     const tr = document.createElement("tr");
-
-    // Roblox PFP
-    const tdPFP = document.createElement("td");
-    const img = document.createElement("img");
-    img.src = robloxPFPUrl(entry.userid);
-    img.alt = entry.robloxUser;
-    img.className = "pfp";
-    tdPFP.appendChild(img);
-    tr.appendChild(tdPFP);
-
-    // Discord User
-    const tdDiscord = document.createElement("td");
-    tdDiscord.textContent = entry.discordUser;
-    tr.appendChild(tdDiscord);
-
-    // Display Name
-    const tdDisplay = document.createElement("td");
-    tdDisplay.textContent = entry.displayName;
-    tr.appendChild(tdDisplay);
-
-    // Roblox Username (editable)
-    const tdRobloxUser = document.createElement("td");
-    const robloxInput = document.createElement("input");
-    robloxInput.value = entry.robloxUser;
-    robloxInput.className = "input-small";
-    robloxInput.onchange = () => {
-      entry.robloxUser = robloxInput.value.trim();
-      renderWhitelistTable();
+    
+    // Email (editable)
+    const emailTd = document.createElement("td");
+    const emailInput = document.createElement("input");
+    emailInput.type = "text";
+    emailInput.value = member.email;
+    emailInput.onchange = e => {
+      teamMembers[idx].email = e.target.value.trim();
+      saveData();
     };
-    tdRobloxUser.appendChild(robloxInput);
-    tr.appendChild(tdRobloxUser);
-
-    // UserID (editable)
-    const tdUserID = document.createElement("td");
-    const userIdInput = document.createElement("input");
-    userIdInput.type = "number";
-    userIdInput.value = entry.userid;
-    userIdInput.className = "input-small";
-    userIdInput.onchange = () => {
-      entry.userid = Number(userIdInput.value);
-      renderWhitelistTable();
+    emailTd.appendChild(emailInput);
+    tr.appendChild(emailTd);
+    
+    // Password (click to toggle)
+    const passwordTd = document.createElement("td");
+    passwordTd.className = "password-cell";
+    const pwSpan = document.createElement("span");
+    pwSpan.textContent = "••••••••";
+    passwordTd.appendChild(pwSpan);
+    
+    let visible = false;
+    passwordTd.onclick = () => {
+      visible = !visible;
+      pwSpan.textContent = visible ? teamMembers[idx].password : "••••••••";
     };
-    tdUserID.appendChild(userIdInput);
-    tr.appendChild(tdUserID);
-
-    // Change (Discord user editable)
-    const tdChange = document.createElement("td");
-    const discordInput = document.createElement("input");
-    discordInput.value = entry.discordUser;
-    discordInput.className = "input-small";
-    discordInput.onchange = () => {
-      entry.discordUser = discordInput.value.trim();
-      renderWhitelistTable();
-    };
-    tdChange.appendChild(discordInput);
-    tr.appendChild(tdChange);
-
-    // Remove
-    const tdRemove = document.createElement("td");
+    
+    tr.appendChild(passwordTd);
+    
+    // Remove button
+    const removeTd = document.createElement("td");
     const removeBtn = document.createElement("button");
     removeBtn.textContent = "Remove";
-    removeBtn.className = "btn";
+    removeBtn.className = "action-btn remove";
     removeBtn.onclick = () => {
-      if (confirm(`Remove whitelist entry for ${entry.robloxUser}?`)) {
-        whitelist.splice(index, 1);
-        renderWhitelistTable();
+      if(confirm(`Remove team member ${teamMembers[idx].email}?`)) {
+        teamMembers.splice(idx, 1);
+        renderTeamTable();
+        saveData();
       }
     };
-    tdRemove.appendChild(removeBtn);
-    tr.appendChild(tdRemove);
-
-    whitelistTableBody.appendChild(tr);
+    removeTd.appendChild(removeBtn);
+    tr.appendChild(removeTd);
+    
+    // Role (select dropdown)
+    const roleTd = document.createElement("td");
+    const roleSelect = document.createElement("select");
+    ["Owner", "Staff"].forEach(role => {
+      const opt = document.createElement("option");
+      opt.value = role;
+      opt.textContent = role;
+      if(role === member.role) opt.selected = true;
+      roleSelect.appendChild(opt);
+    });
+    roleSelect.onchange = e => {
+      teamMembers[idx].role = e.target.value;
+      saveData();
+    };
+    roleTd.appendChild(roleSelect);
+    tr.appendChild(roleTd);
+    
+    tbody.appendChild(tr);
   });
 }
 
-wlAddBtn.addEventListener("click", () => {
-  wlMsg.textContent = "";
-  const discordUser = wlAddDiscord.value.trim();
-  const displayName = wlAddDisplayName.value.trim();
-  const robloxUser = wlAddRobloxUser.value.trim();
-  const userid = Number(wlAddUserID.value);
+// RENDER WHITELIST TABLE
+function renderWhitelistTable() {
+  const tbody = document.querySelector("#whitelistTable tbody");
+  tbody.innerHTML = "";
+  whitelist.forEach((entry, idx) => {
+    const tr = document.createElement("tr");
+    
+    // Roblox PFP image (100x100)
+    const pfpTd = document.createElement("td");
+    const img = document.createElement("img");
+    img.src = `https://www.roblox.com/headshot-thumbnail/image?userId=${entry.userid}&width=100&height=100&format=png`;
+    img.width = 40;
+    img.height = 40;
+    img.style.borderRadius = "50%";
+    pfpTd.appendChild(img);
+    tr.appendChild(pfpTd);
+    
+    // Discord User (editable text)
+    const discordTd = document.createElement("td");
+    const discordInput = document.createElement("input");
+    discordInput.type = "text";
+    discordInput.value = entry.discordUser;
+    discordInput.onchange = e => {
+      whitelist[idx].discordUser = e.target.value.trim();
+      saveData();
+    };
+    discordTd.appendChild(discordInput);
+    tr.appendChild(discordTd);
+    
+    // Roblox Display Name (editable text)
+    const displayTd = document.createElement("td");
+    const displayInput = document.createElement("input");
+    displayInput.type = "text";
+    displayInput.value = entry.displayName;
+    displayInput.onchange = e => {
+      whitelist[idx].displayName = e.target.value.trim();
+      saveData();
+    };
+    displayTd.appendChild(displayInput);
+    tr.appendChild(displayTd);
+    
+    // Roblox User (editable text)
+    const robloxUserTd = document.createElement("td");
+    const robloxUserInput = document.createElement("input");
+    robloxUserInput.type = "text";
+    robloxUserInput.value = entry.robloxUser;
+    robloxUserInput.onchange = e => {
+      whitelist[idx].robloxUser = e.target.value.trim();
+      saveData();
+    };
+    robloxUserTd.appendChild(robloxUserInput);
+    tr.appendChild(robloxUserTd);
+    
+    // UserID (editable number)
+    const useridTd = document.createElement("td");
+    const useridInput = document.createElement("input");
+    useridInput.type = "number";
+    useridInput.value = entry.userid;
+    useridInput.onchange = e => {
+      whitelist[idx].userid = Number(e.target.value);
+      saveData();
+    };
+    useridTd.appendChild(useridInput);
+    tr.appendChild(useridTd);
+    
+    // Change (just a button to update Roblox info? For now we treat as manual)
+    const changeTd = document.createElement("td");
+    const changeBtn = document.createElement("button");
+    changeBtn.textContent = "Change";
+    changeBtn.className = "action-btn";
+    changeBtn.onclick = () => {
+      alert("You can edit the fields directly. UserID is required.");
+    };
+    changeTd.appendChild(changeBtn);
+    tr.appendChild(changeTd);
+    
+    // Remove button
+    const removeTd = document.createElement("td");
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "Remove";
+    removeBtn.className = "action-btn remove";
+    removeBtn.onclick = () => {
+      if(confirm(`Remove whitelist entry for ${entry.robloxUser}?`)) {
+        whitelist.splice(idx, 1);
+        renderWhitelistTable();
+        saveData();
+      }
+    };
+    removeTd.appendChild(removeBtn);
+    tr.appendChild(removeTd);
+    
+    tbody.appendChild(tr);
+  });
+}
 
-  if (!discordUser || !displayName || !robloxUser || !userid) {
-    wlMsg.textContent = "All fields are required.";
-    return;
+// ADD BUTTONS
+document.getElementById("addTeamBtn").onclick = () => {
+  teamMembers.push({email: "", password: "", role: "Staff"});
+  renderTeamTable();
+  saveData();
+};
+document.getElementById("addWhitelistBtn").onclick = () => {
+  whitelist.push({discordUser: "", displayName: "", robloxUser: "", userid: 0});
+  renderWhitelistTable();
+  saveData();
+};
+
+// Show correct page based on role
+function showPageBasedOnRole() {
+  if(currentUser.role.toLowerCase() === "owner") {
+    showSection("team");
+    setActiveButton(navButtons.children[0]);
+  } else {
+    showSection("whitelist");
+    setActiveButton(navButtons.children[0]);
   }
+}
 
-  if (whitelist.some(wl => wl.userid === userid)) {
-    wlMsg.textContent = "UserID already in whitelist.";
-    return;
-  }
-
-  whitelist.push({ discordUser, displayName, robloxUser, userid });
-  wlAddDiscord.value = "";
-  wlAddDisplayName.value = "";
-  wlAddRobloxUser.value = "";
-  wlAddUserID.value = "";
+// Initialize
+login().then(() => {
+  renderTeamTable();
   renderWhitelistTable();
 });
-
-// --- STAFF WHITELIST --- //
-
-const staffWhitelistTableBody = document.querySelector("#staff-whitelist-table tbody");
-const staffWlAddDiscord = document.getElementById("staff-wl-add-discord");
-const staffWlAddDisplayName = document.getElementById("staff-wl-add-displayname");
-const staffWlAddRobloxUser = document.getElementById("staff-wl-add-robloxuser");
-const staffWlAddUserID = document.getElementById("staff-wl-add-userid");
-const staffWlAddBtn = document.getElementById("staff-wl-add-btn");
-const staffWlMsg = document.getElementById("staff-wl-msg");
-
-function renderStaffWhitelistTable() {
-  staffWhitelistTableBody.innerHTML = "";
-  staffWlMsg.textContent = "";
-
-  whitelist.forEach((entry, index) => {
-    const tr = document.createElement("tr");
-
-    const tdPFP = document.createElement("td");
-    const img = document.createElement("img");
-    img.src = robloxPFPUrl(entry.userid);
-    img.alt = entry.robloxUser;
-    img.className = "pfp";
-    tdPFP.appendChild(img);
-    tr.appendChild(tdPFP);
-
-    const tdDiscord = document.createElement("td");
-    tdDiscord.textContent = entry.discordUser;
-    tr.appendChild(tdDiscord);
-
-    const tdDisplay = document.createElement("td");
-    tdDisplay.textContent = entry.displayName;
-    tr.appendChild(tdDisplay);
-
-    const tdRobloxUser = document.createElement("td");
-    const robloxInput = document.createElement("input");
-    robloxInput.value = entry.robloxUser;
-    robloxInput.className = "input-small";
-    robloxInput.onchange = () => {
-      entry.robloxUser = robloxInput.value.trim();
-      renderStaffWhitelistTable();
-    };
-    tdRobloxUser.appendChild(robloxInput);
-    tr.appendChild(tdRobloxUser);
-
-    const tdUserID = document.createElement("td");
-    const userIdInput = document.createElement("input");
-    userIdInput.type = "number";
-    userIdInput.value = entry.userid;
-    userIdInput.className = "input-small";
-    userIdInput.onchange = () => {
-      entry.userid = Number(userIdInput.value);
-      renderStaffWhitelistTable();
-    };
-    tdUserID.appendChild(userIdInput);
-    tr.appendChild(tdUserID);
-
-    const tdChange = document.createElement("td");
-    const discordInput = document.createElement("input");
-    discordInput.value = entry.discordUser;
-    discordInput.className = "input-small";
-    discordInput.onchange = () => {
-      entry.discordUser = discordInput.value.trim();
-      renderStaffWhitelistTable();
-    };
-    tdChange.appendChild(discordInput);
-    tr.appendChild(tdChange);
-
-    const tdRemove = document.createElement("td");
-    const removeBtn = document.createElement("button");
-    removeBtn.textContent = "Remove";
-    removeBtn.className = "btn";
-    removeBtn.onclick = () => {
-      if (confirm(`Remove whitelist entry for ${entry.robloxUser}?`)) {
-        whitelist.splice(index, 1);
-        renderStaffWhitelistTable();
-      }
-    };
-    tdRemove.appendChild(removeBtn);
-    tr.appendChild(tdRemove);
-
-    staffWhitelistTableBody.appendChild(tr);
-  });
-}
-
-staffWlAddBtn.addEventListener("click", () => {
-  staffWlMsg.textContent = "";
-  const discordUser = staffWlAddDiscord.value.trim();
-  const displayName = staffWlAddDisplayName.value.trim();
-  const robloxUser = staffWlAddRobloxUser.value.trim();
-  const userid = Number(staffWlAddUserID.value);
-
-  if (!discordUser || !displayName || !robloxUser || !userid) {
-    staffWlMsg.textContent = "All fields are required.";
-    return;
-  }
-
-  if (whitelist.some(wl => wl.userid === userid)) {
-    staffWlMsg.textContent = "UserID already in whitelist.";
-    return;
-  }
-
-  whitelist.push({ discordUser, displayName, robloxUser, userid });
-  staffWlAddDiscord.value = "";
-  staffWlAddDisplayName.value = "";
-  staffWlAddRobloxUser.value = "";
-  staffWlAddUserID.value = "";
-  renderStaffWhitelistTable();
-});
 </script>
-
 </body>
 </html>
