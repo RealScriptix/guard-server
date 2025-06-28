@@ -3,538 +3,154 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Guard Plugin Manager</title>
+<title>Team & Whitelist Manager</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
-  body {
-    background: #121212;
-    color: #eee;
-    font-family: 'Inter', sans-serif;
-    margin: 0; padding: 0;
-    display: flex; flex-direction: column; height: 100vh;
-  }
-  header {
-    background: #1f1f1f;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  header h1 {
-    margin: 0;
-    font-weight: 700;
-    font-size: 1.3rem;
-  }
-  nav button {
-    background: transparent;
-    border: none;
-    color: #bbb;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-left: 1rem;
-    cursor: pointer;
-    transition: color 0.3s ease;
-  }
-  nav button.active, nav button:hover {
-    color: #66ccff;
-  }
-  main {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 1rem 2rem;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 1rem;
-  }
-  th, td {
-    border: 1px solid #333;
-    padding: 0.6rem 0.8rem;
-    text-align: left;
-  }
-  th {
-    background: #222;
-  }
-  input[type=text], input[type=password], select {
-    width: 100%;
-    padding: 0.3rem 0.5rem;
-    background: #1f1f1f;
-    border: 1px solid #444;
-    color: #eee;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-  input[type=text]:focus, input[type=password]:focus, select:focus {
-    outline: none;
-    border-color: #66ccff;
-  }
-  .btn-icon {
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 1.3rem;
-    user-select: none;
-    color: #66ccff;
-    padding: 0 0.3rem;
-  }
-  .btn-icon:hover {
-    color: #99ddff;
-  }
-  .message {
-    margin-top: 1rem;
-    padding: 0.8rem 1rem;
-    border-radius: 4px;
-    font-weight: 600;
-  }
-  .message.success {
-    background-color: #264d27;
-    color: #a5d6a7;
-  }
-  .message.error {
-    background-color: #5a1f1f;
-    color: #f28b82;
-  }
-  button#saveBtn {
-    margin-top: 1rem;
-    background: #66ccff;
-    border: none;
-    color: #121212;
-    font-weight: 700;
-    padding: 0.6rem 1.2rem;
-    cursor: pointer;
-    border-radius: 3px;
-    font-size: 1rem;
-  }
-  button#saveBtn:disabled {
-    background: #444;
-    cursor: not-allowed;
-    color: #666;
-  }
-  .password-toggle {
-    cursor: pointer;
-    user-select: none;
-    color: #66ccff;
-    margin-left: 0.5rem;
-    font-weight: 600;
-  }
-  .hidden-password {
-    font-family: monospace;
-    letter-spacing: 0.2em;
-  }
+  body { background:#121212; color:#eee; font-family: Arial, sans-serif; margin: 20px; }
+  h1 { text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th, td { border: 1px solid #444; padding: 8px; }
+  th { background: #222; }
+  input, button { background:#222; border:none; color:#eee; padding:5px; }
+  button { cursor: pointer; }
+  button.remove { background: #c33; }
+  button.save { background: #2a2; }
 </style>
 </head>
 <body>
+  <h1>Team Manager</h1>
+  <table id="teamTable">
+    <thead><tr><th>Email</th><th>Password</th><th>Role</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button id="addTeam">+ Add Team Member</button>
 
-<header>
-  <h1>Guard Plugin Manager</h1>
-  <nav id="navButtons"></nav>
-</header>
+  <h1>Whitelist Manager</h1>
+  <table id="whitelistTable">
+    <thead><tr><th>Discord User</th><th>Display Name</th><th>Roblox User</th><th>UserId</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button id="addWhitelist">+ Add Whitelist Entry</button>
 
-<main id="mainContent">
-  <!-- Dynamic content here -->
-</main>
+  <br/><br/>
+  <button id="saveBtn" class="save">Save All Changes</button>
+  <p id="status"></p>
 
 <script>
-(() => {
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwRQ7mr5Wl9wGf-O5RT7M3_FMBf3QKGJRBnCru6pq2yk3CGEpxyEQ7iungB4gIiYynt/exec'; // Your deployed Apps Script URL
-  const mainContent = document.getElementById('mainContent');
-  const nav = document.getElementById('navButtons');
+const USERNAME = "GITHUB_USERNAME";
+const REPO = "GITHUB_REPO";
+const BRANCH = "GITHUB_BRANCH"; // usually "main"
+const TOKEN = "GITHUB_TOKEN";
 
-  // Hardcoded user for demo — replace with real login logic if needed
-  // Owner can see Team Manager + Whitelist + Logout
-  // Staff sees Whitelist + Logout only
-  const currentUser = {
-    email: 'o@owner.com', // Change accordingly
-    role: 'owner' // or 'staff'
-  };
+const TEAM_FILE = "team.json";
+const WHITELIST_FILE = "whitelist.json";
 
-  let teamData = [];
-  let whitelistData = [];
+let teamData = [];
+let whitelistData = [];
+let teamSha = null;
+let whitelistSha = null;
 
-  // --- NAV BUTTONS ---
-  function buildNav() {
-    nav.innerHTML = '';
-    if(currentUser.role === 'owner') {
-      createNavButton('Team Manager', 'team');
-      createNavButton('Whitelist Manager', 'whitelist');
-    } else {
-      createNavButton('Whitelist Manager', 'whitelist');
-    }
-    createNavButton('Logout', 'logout');
-  }
+const headers = {
+  "Authorization": "token " + TOKEN,
+  "Accept": "application/vnd.github.v3+json",
+  "Content-Type": "application/json"
+};
 
-  function createNavButton(label, tabName) {
-    const btn = document.createElement('button');
-    btn.textContent = label;
-    btn.dataset.tab = tabName;
-    btn.addEventListener('click', () => {
-      setActiveTab(tabName);
-    });
-    nav.appendChild(btn);
-  }
-
-  function setActiveTab(tabName) {
-    [...nav.children].forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
-    switch(tabName) {
-      case 'team': renderTeamManager(); break;
-      case 'whitelist': renderWhitelistManager(); break;
-      case 'logout': renderLogout(); break;
-    }
-  }
-
-  // --- TEAM MANAGER ---
-  function renderTeamManager() {
-    mainContent.innerHTML = `<h2>Team Manager</h2>
-      <table id="teamTable">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Password</th>
-            <th>Remove</th>
-            <th>Change Permission</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div style="margin-top:0.8rem;">
-        <span class="btn-icon" id="addTeam">➕ Add Team Member</span>
-      </div>
-      <button id="saveBtn">Save</button>
-      <div class="message" id="message"></div>
-    `;
-    const tbody = mainContent.querySelector('#teamTable tbody');
-    teamData.forEach((member, i) => {
-      const tr = document.createElement('tr');
-      // Email
-      const tdEmail = document.createElement('td');
-      const inputEmail = document.createElement('input');
-      inputEmail.type = 'text';
-      inputEmail.value = member.email || '';
-      inputEmail.dataset.index = i;
-      inputEmail.dataset.field = 'email';
-      tdEmail.appendChild(inputEmail);
-      tr.appendChild(tdEmail);
-
-      // Password with toggle
-      const tdPass = document.createElement('td');
-      const inputPass = document.createElement('input');
-      inputPass.type = 'password';
-      inputPass.value = member.password || '';
-      inputPass.dataset.index = i;
-      inputPass.dataset.field = 'password';
-      inputPass.className = 'password-input';
-      tdPass.appendChild(inputPass);
-
-      const togglePass = document.createElement('span');
-      togglePass.textContent = '👁️';
-      togglePass.className = 'password-toggle';
-      togglePass.title = 'Click to toggle password visibility';
-      togglePass.style.userSelect = 'none';
-      togglePass.addEventListener('click', () => {
-        if (inputPass.type === 'password') {
-          inputPass.type = 'text';
-          togglePass.textContent = '🙈';
-        } else {
-          inputPass.type = 'password';
-          togglePass.textContent = '👁️';
-        }
-      });
-      tdPass.appendChild(togglePass);
-      tr.appendChild(tdPass);
-
-      // Remove button
-      const tdRemove = document.createElement('td');
-      const btnRemove = document.createElement('span');
-      btnRemove.textContent = '❌';
-      btnRemove.className = 'btn-icon';
-      btnRemove.title = 'Remove team member';
-      btnRemove.addEventListener('click', () => {
-        teamData.splice(i, 1);
-        renderTeamManager();
-      });
-      tdRemove.appendChild(btnRemove);
-      tr.appendChild(tdRemove);
-
-      // Change Permission (select)
-      const tdPerm = document.createElement('td');
-      const selPerm = document.createElement('select');
-      ['owner', 'staff'].forEach(role => {
-        const opt = document.createElement('option');
-        opt.value = role;
-        opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-        if(member.role === role) opt.selected = true;
-        selPerm.appendChild(opt);
-      });
-      selPerm.dataset.index = i;
-      selPerm.dataset.field = 'role';
-      selPerm.addEventListener('change', () => {
-        teamData[selPerm.dataset.index].role = selPerm.value;
-      });
-      tdPerm.appendChild(selPerm);
-      tr.appendChild(tdPerm);
-
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('addTeam').onclick = () => {
-      teamData.push({ email: '', password: '', role: 'staff' });
-      renderTeamManager();
-    };
-
-    // Update data on input
-    [...tbody.querySelectorAll('input')].forEach(input => {
-      input.addEventListener('input', e => {
-        const idx = e.target.dataset.index;
-        const field = e.target.dataset.field;
-        teamData[idx][field] = e.target.value;
-      });
-    });
-
-    document.getElementById('saveBtn').onclick = saveData;
-  }
-
-  // --- WHITELIST MANAGER ---
-  function renderWhitelistManager() {
-    mainContent.innerHTML = `<h2>Whitelist Manager</h2>
-      <table id="whitelistTable">
-        <thead>
-          <tr>
-            <th>ROBLOX PFP</th>
-            <th>Discord User</th>
-            <th>Roblox Display Name</th>
-            <th>Roblox User</th>
-            <th>UserID</th>
-            <th>Change</th>
-            <th>Remove</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div style="margin-top:0.8rem;">
-        <span class="btn-icon" id="addWhitelist">➕ Add Whitelist Entry</span>
-      </div>
-      <button id="saveBtn">Save</button>
-      <div class="message" id="message"></div>
-    `;
-
-    const tbody = mainContent.querySelector('#whitelistTable tbody');
-    whitelistData.forEach((entry, i) => {
-      const tr = document.createElement('tr');
-
-      // Roblox PFP (user thumbnail) - clickable to fetch from userid
-      const tdPfp = document.createElement('td');
-      if(entry.userid){
-        const img = document.createElement('img');
-        img.src = `https://www.roblox.com/headshot-thumbnail/image?userId=${entry.userid}&width=48&height=48&format=png`;
-        img.alt = 'Roblox PFP';
-        img.style.borderRadius = '50%';
-        img.width = 48;
-        img.height = 48;
-        tdPfp.appendChild(img);
-      } else {
-        tdPfp.textContent = 'N/A';
-      }
-      tr.appendChild(tdPfp);
-
-      // Discord User
-      const tdDiscord = document.createElement('td');
-      const inputDiscord = document.createElement('input');
-      inputDiscord.type = 'text';
-      inputDiscord.value = entry.discorduser || '';
-      inputDiscord.dataset.index = i;
-      inputDiscord.dataset.field = 'discorduser';
-      tdDiscord.appendChild(inputDiscord);
-      tr.appendChild(tdDiscord);
-
-      // Roblox Display Name
-      const tdDisplay = document.createElement('td');
-      const inputDisplay = document.createElement('input');
-      inputDisplay.type = 'text';
-      inputDisplay.value = entry.displayname || '';
-      inputDisplay.dataset.index = i;
-      inputDisplay.dataset.field = 'displayname';
-      tdDisplay.appendChild(inputDisplay);
-      tr.appendChild(tdDisplay);
-
-      // Roblox User (username)
-      const tdUser = document.createElement('td');
-      const inputUser = document.createElement('input');
-      inputUser.type = 'text';
-      inputUser.value = entry.robloxuser || '';
-      inputUser.dataset.index = i;
-      inputUser.dataset.field = 'robloxuser';
-      tdUser.appendChild(inputUser);
-      tr.appendChild(tdUser);
-
-      // UserID
-      const tdId = document.createElement('td');
-      const inputId = document.createElement('input');
-      inputId.type = 'text';
-      inputId.value = entry.userid || '';
-      inputId.dataset.index = i;
-      inputId.dataset.field = 'userid';
-      tdId.appendChild(inputId);
-      tr.appendChild(tdId);
-
-      // Change button - fetch updated data from Roblox API for this entry
-      const tdChange = document.createElement('td');
-      const btnChange = document.createElement('span');
-      btnChange.textContent = '🔄';
-      btnChange.className = 'btn-icon';
-      btnChange.title = 'Refresh Roblox data';
-      btnChange.addEventListener('click', () => {
-        if(!inputUser.value) {
-          alert('Please enter Roblox username first.');
-          return;
-        }
-        fetchRobloxUserInfo(inputUser.value).then(data => {
-          if(data) {
-            inputDisplay.value = data.displayName;
-            inputId.value = data.id;
-            // Update Roblox PFP img
-            tdPfp.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = `https://www.roblox.com/headshot-thumbnail/image?userId=${data.id}&width=48&height=48&format=png`;
-            img.alt = 'Roblox PFP';
-            img.style.borderRadius = '50%';
-            img.width = 48;
-            img.height = 48;
-            tdPfp.appendChild(img);
-            whitelistData[i].displayname = data.displayName;
-            whitelistData[i].userid = data.id;
-            whitelistData[i].robloxuser = inputUser.value;
-          } else {
-            alert('Roblox user not found!');
-          }
-        });
-      });
-      tdChange.appendChild(btnChange);
-      tr.appendChild(tdChange);
-
-      // Remove button
-      const tdRemove = document.createElement('td');
-      const btnRemove = document.createElement('span');
-      btnRemove.textContent = '❌';
-      btnRemove.className = 'btn-icon';
-      btnRemove.title = 'Remove whitelist entry';
-      btnRemove.addEventListener('click', () => {
-        whitelistData.splice(i, 1);
-        renderWhitelistManager();
-      });
-      tdRemove.appendChild(btnRemove);
-      tr.appendChild(tdRemove);
-
-      tbody.appendChild(tr);
-
-      // Setup input listeners
-      [inputDiscord, inputDisplay, inputUser, inputId].forEach(input => {
-        input.addEventListener('input', e => {
-          const idx = e.target.dataset.index;
-          const field = e.target.dataset.field;
-          whitelistData[idx][field] = e.target.value;
-        });
-      });
-    });
-
-    document.getElementById('addWhitelist').onclick = () => {
-      whitelistData.push({
-        discorduser: '',
-        displayname: '',
-        robloxuser: '',
-        userid: ''
-      });
-      renderWhitelistManager();
-    };
-
-    document.getElementById('saveBtn').onclick = saveData;
-  }
-
-  // --- LOGOUT ---
-  function renderLogout() {
-    mainContent.innerHTML = `
-      <h2>Logout</h2>
-      <p>You have been logged out.</p>
-      <button id="loginBtn">Login Again</button>
-    `;
-    document.getElementById('loginBtn').onclick = () => {
-      alert('Login functionality is not implemented. Reload page to reset.');
-      // Or implement login screen here.
-    };
-  }
-
-  // --- SAVE DATA ---
-  async function saveData() {
-    const messageDiv = document.getElementById('message');
-    messageDiv.textContent = '';
-    document.getElementById('saveBtn').disabled = true;
-    try {
-      const payload = {
-        action: "save",
-        data: {
-          team: teamData,
-          whitelist: whitelistData
-        }
-      };
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const json = await res.json();
-      if(json.success) {
-        messageDiv.textContent = 'Save successful!';
-        messageDiv.className = 'message success';
-      } else {
-        throw new Error(json.error || 'Unknown error');
-      }
-    } catch(err) {
-      messageDiv.textContent = 'Error saving data: ' + err.message;
-      messageDiv.className = 'message error';
-    }
-    document.getElementById('saveBtn').disabled = false;
-  }
-
-  // --- FETCH DATA FROM API ---
-  async function loadData() {
-    try {
-      const res = await fetch(API_URL);
-      const json = await res.json();
-      teamData = json.team || [];
-      whitelistData = json.whitelist || [];
-    } catch {
-      teamData = [];
-      whitelistData = [];
-    }
-  }
-
-  // --- Roblox API helper to get user info ---
-  async function fetchRobloxUserInfo(username) {
-    try {
-      const res = await fetch(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}&limit=1`);
-      const json = await res.json();
-      if(json.data && json.data.length > 0) {
-        return {
-          id: json.data[0].id,
-          displayName: json.data[0].displayName
-        };
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
-  // --- Initialize ---
-  buildNav();
-  loadData().then(() => {
-    if(currentUser.role === 'owner') {
-      setActiveTab('team');
-    } else {
-      setActiveTab('whitelist');
-    }
+function apiGetFile(path) {
+  return fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${path}?ref=${BRANCH}`, {
+    headers
+  }).then(r => {
+    if (!r.ok) throw new Error("Failed to fetch " + path);
+    return r.json();
   });
+}
 
-})();
+function apiPutFile(path, content, sha) {
+  return fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${path}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({
+      message: `Update ${path}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+      branch: BRANCH,
+      sha
+    })
+  }).then(r => {
+    if (!r.ok) throw new Error("Failed to save " + path);
+    return r.json();
+  });
+}
+
+function renderTable(tableId, data, columns, onRemove) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  tbody.innerHTML = "";
+  data.forEach((item, i) => {
+    const tr = document.createElement("tr");
+    columns.forEach(col => {
+      const td = document.createElement("td");
+      if(col === "actions") {
+        const rmBtn = document.createElement("button");
+        rmBtn.textContent = "Remove";
+        rmBtn.className = "remove";
+        rmBtn.onclick = () => {
+          data.splice(i,1);
+          renderTable(tableId, data, columns, onRemove);
+        };
+        td.appendChild(rmBtn);
+      } else {
+        const input = document.createElement("input");
+        input.value = item[col] || "";
+        input.oninput = e => item[col] = e.target.value;
+        td.appendChild(input);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function loadData() {
+  Promise.all([apiGetFile(TEAM_FILE), apiGetFile(WHITELIST_FILE)])
+    .then(([teamResp, whitelistResp]) => {
+      teamSha = teamResp.sha;
+      whitelistSha = whitelistResp.sha;
+      teamData = JSON.parse(atob(teamResp.content));
+      whitelistData = JSON.parse(atob(whitelistResp.content));
+      renderTable("teamTable", teamData, ["email","password","role","actions"]);
+      renderTable("whitelistTable", whitelistData, ["discorduser","displayname","robloxuser","userid","actions"]);
+      status("Data loaded.");
+    })
+    .catch(e => status("Error loading data: " + e.message));
+}
+
+function saveData() {
+  status("Saving...");
+  Promise.all([
+    apiPutFile(TEAM_FILE, teamData, teamSha),
+    apiPutFile(WHITELIST_FILE, whitelistData, whitelistSha)
+  ]).then(([teamRes, whitelistRes]) => {
+    teamSha = teamRes.content.sha;
+    whitelistSha = whitelistRes.content.sha;
+    status("Save successful!");
+  }).catch(e => status("Save failed: " + e.message));
+}
+
+function status(text) {
+  document.getElementById("status").textContent = text;
+}
+
+document.getElementById("addTeam").onclick = () => {
+  teamData.push({email:"",password:"",role:""});
+  renderTable("teamTable", teamData, ["email","password","role","actions"]);
+};
+
+document.getElementById("addWhitelist").onclick = () => {
+  whitelistData.push({discorduser:"",displayname:"",robloxuser:"",userid:""});
+  renderTable("whitelistTable", whitelistData, ["discorduser","displayname","robloxuser","userid","actions"]);
+};
+
+document.getElementById("saveBtn").onclick = saveData;
+
+loadData();
 </script>
 </body>
 </html>
